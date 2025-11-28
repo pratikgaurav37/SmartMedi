@@ -1,0 +1,59 @@
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { getMedications } from "@/lib/medications";
+import DashboardClient from "./dashboard-client";
+
+function getGreeting() {
+	const hour = new Date().getHours();
+	if (hour < 12) return "Good Morning";
+	if (hour < 18) return "Good Afternoon";
+	return "Good Evening";
+}
+
+export default async function Dashboard() {
+	const supabase = await createClient();
+	const {
+		data: { user },
+		error,
+	} = await supabase.auth.getUser();
+
+	if (error || !user) {
+		redirect("/auth/login");
+	}
+
+	// Fetch medications from Supabase
+	const { data: medications } = await getMedications(user.id);
+
+	// Fetch profile from Supabase
+	const { data: profileData } = await supabase
+		.from("profiles")
+		.select("*")
+		.eq("id", user.id)
+		.single();
+
+	// Check for low stock medications
+	const lowStockMeds = medications.filter(
+		(med) =>
+			med.currentSupply !== undefined &&
+			med.lowStockThreshold !== undefined &&
+			med.currentSupply <= med.lowStockThreshold
+	);
+
+	// Extract only serializable user data
+	const userData = {
+		id: user.id,
+		email: user.email,
+	};
+
+	const greeting = getGreeting();
+
+	return (
+		<DashboardClient
+			user={userData}
+			profile={profileData}
+			medications={medications}
+			lowStockMeds={lowStockMeds}
+			greeting={greeting}
+		/>
+	);
+}
