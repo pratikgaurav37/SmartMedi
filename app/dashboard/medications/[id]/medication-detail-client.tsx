@@ -274,7 +274,7 @@ export default function MedicationDetailClient({
 			className="min-h-screen bg-slate-50/50 dark:bg-slate-950 pb-20"
 		>
 			{/* Hero Header */}
-			<div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 pt-8 pb-12 px-6 shadow-sm relative overflow-hidden">
+			<div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 pt-8 pb-12 px-6 shadow-sm relative overflow-hidden rounded-lg">
 				<div className="max-w-4xl mx-auto relative z-10">
 					<div className="flex items-center justify-between mb-8">
 						<Link href="/dashboard">
