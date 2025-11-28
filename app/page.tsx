@@ -19,7 +19,7 @@ import { ChevronRight, Pill } from 'lucide-react';
     <Button onClick={() => {
       //redirect to login
       router.push('/auth/login');
-    }} className="w-full max-w-xs py-4 text-lg shadow-xl shadow-blue-200">
+    }} className="w-full max-w-xs py-6 text-lg shadow-xl shadow-blue-200">
       Login / Get Started
       <ChevronRight className="w-5 h-5 ml-2" />
     </Button>

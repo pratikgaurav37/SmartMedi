@@ -36,7 +36,7 @@ export default function RootLayout({
 				<ReminderProvider>{children}</ReminderProvider>
 				<Toaster />
 			</body>
-			<Script
+			{/* <Script
 				src="https://telegram.org/js/telegram-widget.js?22"
 				data-telegram-login="medi_remainder_bot"
 				data-size="large"
@@ -50,7 +50,7 @@ export default function RootLayout({
             alert('Logged in as ' + user.first_name + ' ' + user.last_name + ' (' + user.id + (user.username ? ', @' + user.username : '') + ')');
           }
         `}
-			</Script>
+			</Script> */}
 		</html>
 	);
 }
