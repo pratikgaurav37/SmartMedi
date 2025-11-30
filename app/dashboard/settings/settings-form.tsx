@@ -13,7 +13,7 @@ import { TelegramConnectDev } from "@/components/telegram-connect-dev";
 
 // Use dev component for local development, prod component for production
 const isDev = process.env.NODE_ENV === "development";
-const TelegramWidget = isDev ? TelegramConnectDev : TelegramConnect;
+const TelegramWidget = false ? TelegramConnectDev : TelegramConnect;
 
 interface SettingsFormProps {
 	initialProfile: UserProfile;
@@ -323,9 +323,7 @@ export function SettingsForm({ initialProfile }: SettingsFormProps) {
 							connectedUser={
 								formData.telegramChatId
 									? {
-											firstName: formData.telegramFirstName,
-											username: formData.telegramUsername,
-											photoUrl: formData.telegramPhotoUrl,
+											firstName: "Telegram User",
 									  }
 									: undefined
 							}
@@ -333,18 +331,12 @@ export function SettingsForm({ initialProfile }: SettingsFormProps) {
 								setFormData((prev) => ({
 									...prev,
 									telegramChatId: data.chatId,
-									telegramFirstName: data.firstName,
-									telegramUsername: data.username,
-									telegramPhotoUrl: data.photoUrl,
 								}));
 							}}
 							onDisconnect={() => {
 								setFormData((prev) => ({
 									...prev,
 									telegramChatId: undefined,
-									telegramFirstName: undefined,
-									telegramUsername: undefined,
-									telegramPhotoUrl: undefined,
 								}));
 							}}
 							onError={(error) => {

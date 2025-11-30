@@ -21,9 +21,6 @@ export async function DELETE(request: NextRequest) {
 			.from("profiles")
 			.update({
 				telegram_chat_id: null,
-				telegram_username: null,
-				telegram_first_name: null,
-				telegram_photo_url: null,
 			})
 			.eq("id", user.id);
 

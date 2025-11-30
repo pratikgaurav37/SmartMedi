@@ -35,7 +35,8 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		const botUsername = process.env.TELEGRAM_BOT_USERNAME || "YourBotName";
+		const botUsername =
+			process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "YourBotName";
 
 		return NextResponse.json({
 			success: true,

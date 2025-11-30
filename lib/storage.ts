@@ -50,9 +50,6 @@ export interface UserProfile {
 	weight?: string;
 	phone: string;
 	telegramChatId?: string;
-	telegramUsername?: string;
-	telegramFirstName?: string;
-	telegramPhotoUrl?: string;
 	conditions: string[];
 	allergies?: string;
 	doctorName?: string;

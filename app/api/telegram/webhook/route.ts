@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
 import { bot } from "@/lib/telegram";
 
 export async function POST(request: NextRequest) {
@@ -23,7 +23,10 @@ export async function POST(request: NextRequest) {
 
 			if (data) {
 				const [action, logId] = data.split(":");
-				const supabase = await createClient();
+				const supabase = createClient(
+					process.env.NEXT_PUBLIC_SUPABASE_URL!,
+					process.env.SUPABASE_SERVICE_ROLE_KEY!
+				);
 				const now = new Date().toISOString();
 
 				let replyText = "";
@@ -99,9 +102,11 @@ export async function POST(request: NextRequest) {
 			// Check for /start command with token
 			if (text.startsWith("/start ")) {
 				const token = text.split(" ")[1];
-
 				if (token) {
-					const supabase = await createClient();
+					const supabase = createClient(
+						process.env.NEXT_PUBLIC_SUPABASE_URL!,
+						process.env.SUPABASE_SERVICE_ROLE_KEY!
+					);
 
 					// Verify token
 					const { data: tokenData, error: tokenError } = await supabase
@@ -132,9 +137,6 @@ export async function POST(request: NextRequest) {
 						.from("profiles")
 						.update({
 							telegram_chat_id: chatId.toString(),
-							telegram_username: telegramUser.username || null,
-							telegram_first_name: telegramUser.first_name,
-							telegram_photo_url: null, // We can't easily get photo URL from webhook without extra API calls
 						})
 						.eq("id", tokenData.user_id);
 
