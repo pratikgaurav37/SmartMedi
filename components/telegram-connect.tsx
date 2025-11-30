@@ -50,7 +50,9 @@ export function TelegramConnect({
 
 			if (response.ok && data.success) {
 				setGeneratedBotUsername(data.botUsername);
-				setConnectLink(`https://t.me/${data.botUsername}?start=${data.token}`);
+				setConnectLink(
+					`https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}?start=${data.token}`
+				);
 			} else {
 				setError(data.error || "Failed to generate connection link");
 			}
