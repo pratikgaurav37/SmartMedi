@@ -70,19 +70,17 @@ export default function MedicationDetailClient({
 			// Use local date for today
 			const todayStr = getLocalTodayDate();
 
-			// Check previous days or earlier times today
-			// For simplicity in this view, we just check if there are any times in the past
-			// that don't have a log or are "pending" (which implies no log)
-			// However, since we only load "doseLogs" which are *existing* logs,
-			// we need to infer missed doses from the schedule.
+			// Check start date
+			const startDate = new Date(medication.startDate);
+			const yesterday = new Date();
+			yesterday.setDate(yesterday.getDate() - 1);
+			yesterday.setHours(0, 0, 0, 0);
 
-			// Actually, the requirement is "previous non taken and mark them missed".
-			// We can iterate over the schedule for today and see if any time < now is missing a log.
-			// For previous days, we'd need to know if the user visited the app.
-			// If we only check "today" here, it covers the "open app during the day" case.
-			// For "yesterday", we might need a broader check.
-
-			// Let's implement a check for "Today's Missed Doses" first.
+			// If medication hasn't started yet (start date is in future relative to yesterday), skip missed check for yesterday
+			// We compare with yesterday because we are checking for yesterday's missed doses
+			if (startDate > yesterday) {
+				return;
+			}
 
 			const missedTimes: string[] = [];
 
@@ -126,7 +124,7 @@ export default function MedicationDetailClient({
 		};
 
 		checkMissedDoses();
-	}, [medication.id, medication.times, doseLogs, router]);
+	}, [medication.id, medication.times, medication.startDate, doseLogs, router]);
 
 	const getTodayLog = (time: string) => {
 		const todayStr = getLocalTodayDate();
@@ -265,21 +263,39 @@ export default function MedicationDetailClient({
 
 	const isLowStock =
 		medication.currentSupply !== undefined &&
+		medication.currentSupply !== null &&
 		medication.lowStockThreshold !== undefined &&
 		medication.currentSupply <= medication.lowStockThreshold;
 
 	// Calculate adherence for this medication
 	const takenDoses = doseLogs.filter((log) => log.status === "taken").length;
-	const totalDoses = doseLogs.length;
+	// Total doses should be the number of logs that are final (taken, skipped, missed)
+	// OR pending/delayed logs that are in the past.
+	// But simply using doseLogs.length is a good approximation if we assume logs are created for all past events.
+	// However, the user complained about "0 / 2" when they delayed one.
+	// If they delayed one, it's still "active" for today, so it shouldn't count as "missed" or "taken" yet.
+	// But it IS a dose that was scheduled.
+	// Let's stick to: Taken / (Taken + Skipped + Missed). Pending/Delayed are "in progress".
+	const completedDoses = doseLogs.filter((log) =>
+		["taken", "skipped", "missed"].includes(log.status)
+	).length;
+	
 	const adherencePercentage =
-		totalDoses > 0 ? Math.round((takenDoses / totalDoses) * 100) : 0;
+		completedDoses > 0 ? Math.round((takenDoses / completedDoses) * 100) : 0;
 
 	// Calculate days active
 	const startDate = new Date(medication.startDate);
 	const today = new Date();
-	const daysActive = Math.floor(
-		(today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-	);
+	// Reset hours to compare dates only
+	const startDateOnly = new Date(startDate);
+	startDateOnly.setHours(0, 0, 0, 0);
+	const todayOnly = new Date(today);
+	todayOnly.setHours(0, 0, 0, 0);
+
+	const diffTime = todayOnly.getTime() - startDateOnly.getTime();
+	const daysActive = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+	
+	const isFutureStart = daysActive < 0;
 
 	return (
 		<motion.div
@@ -386,7 +402,12 @@ export default function MedicationDetailClient({
 										: "text-slate-900 dark:text-white"
 								}`}
 							>
-								{medication.currentSupply} {medication.supplyUnit || "units"}
+								{medication.currentSupply !== undefined &&
+								medication.currentSupply !== null
+									? `${medication.currentSupply} ${
+											medication.supplyUnit || "units"
+									  }`
+									: "Not tracked"}
 							</p>
 						</div>
 					</div>
@@ -400,7 +421,9 @@ export default function MedicationDetailClient({
 								Days Active
 							</p>
 							<p className="text-lg font-bold text-slate-900 dark:text-white">
-								{daysActive} days
+								{isFutureStart
+									? `Starts in ${Math.abs(daysActive)} days`
+									: `${daysActive} days`}
 							</p>
 						</div>
 					</div>
@@ -434,7 +457,7 @@ export default function MedicationDetailClient({
 								Total Doses Taken
 							</p>
 							<p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-								{takenDoses} / {totalDoses}
+								{takenDoses} / {completedDoses}
 							</p>
 						</div>
 					</div>
@@ -468,7 +491,14 @@ export default function MedicationDetailClient({
 							)}
 						</div>
 						<div className="space-y-4">
-							{medication.times.length > 0 ? (
+							{isFutureStart ? (
+								<div className="text-center p-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+									<p className="text-slate-500 dark:text-slate-400 mb-4">
+										Medication starts on{" "}
+										{new Date(medication.startDate).toLocaleDateString()}
+									</p>
+								</div>
+							) : medication.times.length > 0 ? (
 								medication.times.sort().map((time, index) => {
 									const log = getTodayLog(time);
 
