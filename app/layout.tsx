@@ -33,24 +33,10 @@ export default function RootLayout({
 			<body
 				className={`${outfit.variable} ${plusJakarta.variable} antialiased font-sans bg-slate-50 text-slate-900`}
 			>
-				<ReminderProvider>{children}</ReminderProvider>
+				{children}
 				<Toaster />
 			</body>
-			{/* <Script
-				src="https://telegram.org/js/telegram-widget.js?22"
-				data-telegram-login="medi_remainder_bot"
-				data-size="large"
-				data-onauth="onTelegramAuth"
-				data-request-access="write"
-				strategy="lazyOnload"
-			/>
-			<Script id="telegram-auth" strategy="lazyOnload">
-				{`
-          function onTelegramAuth(user) {
-            alert('Logged in as ' + user.first_name + ' ' + user.last_name + ' (' + user.id + (user.username ? ', @' + user.username : '') + ')');
-          }
-        `}
-			</Script> */}
+			
 		</html>
 	);
 }

@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 			const times = Array.isArray(med.times)
 				? med.times
 				: JSON.parse(med.times as string);
-			console.log("Times:", times);
+		//	console.log("Times:", times);
 			for (const time of times) {
 				// Convert UTC to IST (UTC+5:30)
 				const istOffset = 5.5 * 60; // IST is UTC+5:30 in minutes
@@ -75,9 +75,9 @@ export async function POST(request: NextRequest) {
 				const minutesDiff = Math.abs(schedTotalMinutes - currTotalMinutes);
 
 				const isWithinWindow = minutesDiff <= 10; // 10 minutes window
-				console.log(
-					`Current IST time: ${currentTimeStr}, Scheduled: ${time}, Diff: ${minutesDiff} mins, Within window: ${isWithinWindow}`
-				);
+			//	console.log(
+			//		`Current IST time: ${currentTimeStr}, Scheduled: ${time}, Diff: ${minutesDiff} mins, Within window: ${isWithinWindow}`
+			//	);
 				if (isWithinWindow) {
 					const logId = `${med.id}_${todayStr}_${time.replace(":", "")}`;
 

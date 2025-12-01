@@ -59,12 +59,12 @@ export default function DashboardClient({
 			variants={container}
 			initial="hidden"
 			animate="show"
-			className="space-y-8 pb-20 max-w-7xl mx-auto"
+			className="space-y-8 pb-20 max-w-7xl mx-auto "
 		>
 			{/* Header Section */}
 			<motion.div
 				variants={item}
-				className="flex flex-col md:flex-row md:items-end justify-between gap-4"
+				className="flex flex-col md:flex-row md:items-end justify-between gap-4 "
 			>
 				<div>
 					<h1 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
