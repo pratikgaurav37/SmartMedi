@@ -10,6 +10,7 @@ import { Medication } from "@/lib/storage";
 import Link from "next/link";
 import { saveMedicationAction } from "./actions";
 import { toast } from "sonner";
+import { NotificationPermissionCard } from "@/components/notification-permission-card";
 
 interface AddMedicationClientProps {
 	userId: string;
@@ -369,6 +370,21 @@ export default function AddMedicationClient({
 							}
 						/>
 					</div>
+				</div>
+
+				{/* Section 5: Notifications */}
+				<div className="space-y-4">
+					<h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
+						Reminders
+					</h2>
+					<p className="text-sm text-slate-600">
+						Enable notifications to receive timely reminders for this
+						medication.
+					</p>
+					<NotificationPermissionCard
+						compact={false}
+						autoHideOnGranted={true}
+					/>
 				</div>
 
 				<Button

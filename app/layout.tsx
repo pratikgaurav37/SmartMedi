@@ -19,9 +19,7 @@ export const metadata: Metadata = {
 	description: "Manage your medications with ease.",
 };
 
-import { ReminderProvider } from "@/components/reminder-provider";
 import { Toaster } from "@/components/ui/sonner";
-import Script from "next/script";
 
 export default function RootLayout({
 	children,
@@ -36,7 +34,6 @@ export default function RootLayout({
 				{children}
 				<Toaster />
 			</body>
-			
 		</html>
 	);
 }

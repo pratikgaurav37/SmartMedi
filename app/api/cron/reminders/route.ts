@@ -39,19 +39,24 @@ export async function POST(request: NextRequest) {
 			// Get user profile for this medication
 			const { data: profile } = await supabase
 				.from("profiles")
-				.select("telegram_chat_id")
+				.select("telegram_chat_id, web_notifications_enabled")
 				.eq("id", med.user_id)
 				.single();
 
-			// Skip if no Telegram connection
-			if (!profile?.telegram_chat_id) continue;
+			// Skip if user has no notification channels enabled
+			// Primary: Telegram (with interactive buttons)
+			// Secondary: Web Push Notifications (requires service worker - future implementation)
+			// Note: Client-side reminder polling has been removed
+			if (!profile?.telegram_chat_id && !profile?.web_notifications_enabled) {
+				continue;
+			}
 
 			// Check if any of the medication's times match current time (±5 min window)
 			// Note: This logic assumes 'times' is an array of strings like ["08:00", "20:00"]
 			const times = Array.isArray(med.times)
 				? med.times
 				: JSON.parse(med.times as string);
-		//	console.log("Times:", times);
+			//	console.log("Times:", times);
 			for (const time of times) {
 				// Convert UTC to IST (UTC+5:30)
 				const istOffset = 5.5 * 60; // IST is UTC+5:30 in minutes
@@ -75,9 +80,9 @@ export async function POST(request: NextRequest) {
 				const minutesDiff = Math.abs(schedTotalMinutes - currTotalMinutes);
 
 				const isWithinWindow = minutesDiff <= 10; // 10 minutes window
-			//	console.log(
-			//		`Current IST time: ${currentTimeStr}, Scheduled: ${time}, Diff: ${minutesDiff} mins, Within window: ${isWithinWindow}`
-			//	);
+				//	console.log(
+				//		`Current IST time: ${currentTimeStr}, Scheduled: ${time}, Diff: ${minutesDiff} mins, Within window: ${isWithinWindow}`
+				//	);
 				if (isWithinWindow) {
 					const logId = `${med.id}_${todayStr}_${time.replace(":", "")}`;
 
@@ -113,6 +118,20 @@ export async function POST(request: NextRequest) {
 							logId: logId,
 						});
 						processedCount++;
+
+						// TODO: Send web push notification if enabled
+						// Web push notifications require:
+						// 1. Service worker registration on client
+						// 2. Push subscription stored in database
+						// 3. Web Push library (e.g., web-push) for server-side sending
+						// 4. VAPID keys for authentication
+						// For now, web notifications are handled client-side via the notification permission card
+						// Future implementation should use the Web Push API
+						if (profile.web_notifications_enabled) {
+							console.log(
+								`📱 Web notifications enabled for user ${med.user_id} - service worker implementation pending`
+							);
+						}
 					}
 				}
 			}

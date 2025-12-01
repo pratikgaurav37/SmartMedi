@@ -11,6 +11,7 @@ import { saveUserProfile } from "./actions";
 import { UserProfile } from "@/lib/storage";
 import { TelegramConnect } from "@/components/telegram-connect";
 import { TelegramConnectDev } from "@/components/telegram-connect-dev";
+import { NotificationPermissionCard } from "@/components/notification-permission-card";
 
 // Use dev component for local development, prod component for production
 const isDev = process.env.NODE_ENV === "development";
@@ -381,6 +382,20 @@ const Onboarding = () => {
 								onError={(error) => {
 									console.error("Telegram connection error:", error);
 								}}
+							/>
+						</div>
+
+						<div className="pt-6 border-t border-slate-100">
+							<label className="block text-sm font-medium text-slate-700 mb-3">
+								Browser Notifications (Optional)
+							</label>
+							<p className="text-xs text-slate-500 mb-4">
+								Enable browser notifications to receive reminders even when the
+								app is closed.
+							</p>
+							<NotificationPermissionCard
+								compact={false}
+								autoHideOnGranted={false}
 							/>
 						</div>
 					</div>
