@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendMedicationReminder } from "@/lib/telegram";
+import { sendMedicationReminderPush } from "@/lib/web-push";
 
 export async function POST(request: NextRequest) {
 	// Verify Cron Secret (Optional but recommended for production)
@@ -39,7 +40,9 @@ export async function POST(request: NextRequest) {
 			// Get user profile for this medication
 			const { data: profile } = await supabase
 				.from("profiles")
-				.select("telegram_chat_id, web_notifications_enabled")
+				.select(
+					"telegram_chat_id, web_notifications_enabled, push_subscription"
+				)
 				.eq("id", med.user_id)
 				.single();
 
@@ -108,30 +111,51 @@ export async function POST(request: NextRequest) {
 							status: "pending",
 						});
 
-						// Send Telegram notification
-						await sendMedicationReminder({
-							chatId: profile.telegram_chat_id,
-							medicationName: med.name,
-							scheduledTime: scheduledDate.toISOString(),
-							dosage: med.dosage,
-							medicationId: med.id,
-							logId: logId,
-						});
-						processedCount++;
-
-						// TODO: Send web push notification if enabled
-						// Web push notifications require:
-						// 1. Service worker registration on client
-						// 2. Push subscription stored in database
-						// 3. Web Push library (e.g., web-push) for server-side sending
-						// 4. VAPID keys for authentication
-						// For now, web notifications are handled client-side via the notification permission card
-						// Future implementation should use the Web Push API
-						if (profile.web_notifications_enabled) {
-							console.log(
-								`📱 Web notifications enabled for user ${med.user_id} - service worker implementation pending`
-							);
+						// Send Telegram notification if available
+						if (profile.telegram_chat_id) {
+							await sendMedicationReminder({
+								chatId: profile.telegram_chat_id,
+								medicationName: med.name,
+								scheduledTime: scheduledDate.toISOString(),
+								dosage: med.dosage,
+								medicationId: med.id,
+								logId: logId,
+							});
 						}
+
+						// Send web push notification if enabled
+						if (
+							profile.web_notifications_enabled &&
+							profile.push_subscription
+						) {
+							const pushResult = await sendMedicationReminderPush(
+								profile.push_subscription,
+								med.name,
+								med.dosage,
+								scheduledDate.toISOString(),
+								med.id,
+								logId
+							);
+
+							// If subscription expired, clean it up
+							if (
+								!pushResult.success &&
+								pushResult.error === "subscription_expired"
+							) {
+								console.log(
+									`🧹 Cleaning up expired push subscription for user ${med.user_id}`
+								);
+								await supabase
+									.from("profiles")
+									.update({
+										push_subscription: null,
+										web_notifications_enabled: false,
+									})
+									.eq("id", med.user_id);
+							}
+						}
+
+						processedCount++;
 					}
 				}
 			}

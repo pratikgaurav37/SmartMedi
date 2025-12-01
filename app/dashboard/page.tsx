@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMedications } from "@/lib/medications";
+import { getDoseLogs } from "@/lib/dose-logs";
 import DashboardClient from "./dashboard-client";
 
 function getGreeting() {
@@ -31,6 +32,13 @@ export default async function Dashboard() {
 		.eq("id", user.id)
 		.single();
 
+	// Fetch dose logs for the last 7 days
+	const sevenDaysAgo = new Date();
+	sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+	const { data: doseLogs } = await getDoseLogs(user.id, {
+		startDate: sevenDaysAgo.toISOString(),
+	});
+
 	// Check for low stock medications
 	const lowStockMeds = medications.filter(
 		(med) =>
@@ -53,6 +61,7 @@ export default async function Dashboard() {
 			profile={profileData}
 			medications={medications}
 			lowStockMeds={lowStockMeds}
+			doseLogs={doseLogs}
 			greeting={greeting}
 		/>
 	);

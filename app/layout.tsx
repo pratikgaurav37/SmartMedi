@@ -20,6 +20,7 @@ export const metadata: Metadata = {
 };
 
 import { Toaster } from "@/components/ui/sonner";
+import Script from "next/script";
 
 export default function RootLayout({
 	children,
@@ -34,6 +35,21 @@ export default function RootLayout({
 				{children}
 				<Toaster />
 			</body>
+			<Script id="register-sw" strategy="afterInteractive">
+				{`
+					if ('serviceWorker' in navigator) {
+						window.addEventListener('load', () => {
+							navigator.serviceWorker.register('/sw.js')
+								.then((registration) => {
+									console.log('✅ Service Worker registered:', registration.scope);
+								})
+								.catch((error) => {
+									console.error('❌ Service Worker registration failed:', error);
+								});
+						});
+					}
+				`}
+			</Script>
 		</html>
 	);
 }

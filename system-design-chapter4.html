@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Chapter 4: System Design - Smart Medication Manager</title>
+		<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+		<style>
+			@import url("https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700&display=swap");
+
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+
+			:root {
+				--primary: #0f172a;
+				--secondary: #1e293b;
+				--accent: #3b82f6;
+				--accent-light: #60a5fa;
+				--text: #e2e8f0;
+				--text-dim: #94a3b8;
+				--border: #334155;
+				--bg: #020617;
+				--card-bg: #0f172a;
+				--success: #10b981;
+				--warning: #f59e0b;
+				--error: #ef4444;
+			}
+
+			body {
+				font-family: "Outfit", sans-serif;
+				background: var(--bg);
+				color: var(--text);
+				line-height: 1.6;
+				overflow-x: hidden;
+			}
+
+			.container {
+				max-width: 1400px;
+				margin: 0 auto;
+				padding: 2rem;
+			}
+
+			/* Header */
+			header {
+				background: linear-gradient(
+					135deg,
+					var(--primary) 0%,
+					var(--secondary) 100%
+				);
+				border-bottom: 2px solid var(--accent);
+				padding: 3rem 2rem;
+				margin-bottom: 3rem;
+				position: relative;
+				overflow: hidden;
+			}
+
+			header::before {
+				content: "";
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				background: radial-gradient(
+						circle at 20% 50%,
+						rgba(59, 130, 246, 0.1) 0%,
+						transparent 50%
+					),
+					radial-gradient(
+						circle at 80% 50%,
+						rgba(59, 130, 246, 0.1) 0%,
+						transparent 50%
+					);
+				pointer-events: none;
+			}
+
+			header .container {
+				position: relative;
+				z-index: 1;
+			}
+
+			h1 {
+				font-size: 3rem;
+				font-weight: 700;
+				margin-bottom: 0.5rem;
+				background: linear-gradient(
+					135deg,
+					var(--accent-light) 0%,
+					var(--accent) 100%
+				);
+				-webkit-background-clip: text;
+				-webkit-text-fill-color: transparent;
+				background-clip: text;
+			}
+
+			.subtitle {
+				font-size: 1.25rem;
+				color: var(--text-dim);
+				font-weight: 300;
+			}
+
+			/* Navigation */
+			nav {
+				background: var(--card-bg);
+				border: 1px solid var(--border);
+				border-radius: 12px;
+				padding: 1.5rem;
+				margin-bottom: 2rem;
+				position: sticky;
+				top: 1rem;
+				z-index: 100;
+				backdrop-filter: blur(10px);
+				box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+			}
+
+			nav h2 {
+				font-size: 1rem;
+				text-transform: uppercase;
+				letter-spacing: 2px;
+				color: var(--text-dim);
+				margin-bottom: 1rem;
+				font-weight: 600;
+			}
+
+			nav ul {
+				list-style: none;
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.75rem;
+			}
+
+			nav a {
+				display: inline-block;
+				padding: 0.75rem 1.5rem;
+				background: var(--secondary);
+				color: var(--text);
+				text-decoration: none;
+				border-radius: 8px;
+				border: 1px solid var(--border);
+				transition: all 0.3s ease;
+				font-weight: 500;
+				font-size: 0.95rem;
+			}
+
+			nav a:hover {
+				background: var(--accent);
+				border-color: var(--accent);
+				transform: translateY(-2px);
+				box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+			}
+
+			/* Section */
+			section {
+				background: var(--card-bg);
+				border: 1px solid var(--border);
+				border-radius: 16px;
+				padding: 2.5rem;
+				margin-bottom: 2rem;
+				scroll-margin-top: 6rem;
+				transition: all 0.3s ease;
+			}
+
+			section:hover {
+				border-color: var(--accent);
+				box-shadow: 0 8px 24px rgba(59, 130, 246, 0.1);
+			}
+
+			section h2 {
+				font-size: 2rem;
+				margin-bottom: 1.5rem;
+				color: var(--accent-light);
+				display: flex;
+				align-items: center;
+				gap: 1rem;
+				font-weight: 600;
+			}
+
+			section h3 {
+				font-size: 1.5rem;
+				margin: 2rem 0 1rem;
+				color: var(--text);
+				font-weight: 600;
+				border-left: 4px solid var(--accent);
+				padding-left: 1rem;
+			}
+
+			section h4 {
+				font-size: 1.25rem;
+				margin: 1.5rem 0 1rem;
+				color: var(--text-dim);
+				font-weight: 500;
+			}
+
+			/* Diagram Container */
+			.diagram-container {
+				background: var(--secondary);
+				border: 1px solid var(--border);
+				border-radius: 12px;
+				padding: 2rem;
+				margin: 1.5rem 0;
+				overflow-x: auto;
+			}
+
+			.mermaid {
+				display: flex;
+				justify-content: center;
+				min-height: 200px;
+			}
+
+			/* Table */
+			table {
+				width: 100%;
+				border-collapse: collapse;
+				margin: 1.5rem 0;
+				background: var(--secondary);
+				border-radius: 8px;
+				overflow: hidden;
+			}
+
+			thead {
+				background: linear-gradient(135deg, var(--accent) 0%, #2563eb 100%);
+			}
+
+			th {
+				padding: 1rem;
+				text-align: left;
+				font-weight: 600;
+				color: white;
+				text-transform: uppercase;
+				font-size: 0.875rem;
+				letter-spacing: 1px;
+			}
+
+			td {
+				padding: 1rem;
+				border-top: 1px solid var(--border);
+				color: var(--text);
+			}
+
+			tr:hover {
+				background: rgba(59, 130, 246, 0.05);
+			}
+
+			/* Code blocks */
+			code {
+				font-family: "Space Mono", monospace;
+				background: var(--secondary);
+				padding: 0.25rem 0.5rem;
+				border-radius: 4px;
+				font-size: 0.9rem;
+				color: var(--accent-light);
+			}
+
+			/* Description list */
+			dl {
+				margin: 1rem 0;
+			}
+
+			dt {
+				font-weight: 600;
+				color: var(--accent-light);
+				margin-top: 1rem;
+				font-size: 1.1rem;
+			}
+
+			dd {
+				margin-left: 1.5rem;
+				color: var(--text-dim);
+				margin-bottom: 0.5rem;
+			}
+
+			/* Badge */
+			.badge {
+				display: inline-block;
+				padding: 0.25rem 0.75rem;
+				background: var(--accent);
+				color: white;
+				border-radius: 20px;
+				font-size: 0.875rem;
+				font-weight: 500;
+				margin-left: 0.5rem;
+			}
+
+			/* Responsive */
+			@media (max-width: 768px) {
+				h1 {
+					font-size: 2rem;
+				}
+
+				nav ul {
+					flex-direction: column;
+				}
+
+				section {
+					padding: 1.5rem;
+				}
+
+				.diagram-container {
+					padding: 1rem;
+				}
+			}
+
+			/* Animation */
+			@keyframes fadeIn {
+				from {
+					opacity: 0;
+					transform: translateY(20px);
+				}
+				to {
+					opacity: 1;
+					transform: translateY(0);
+				}
+			}
+
+			section {
+				animation: fadeIn 0.6s ease-out;
+			}
+
+			/* Section number */
+			.section-number {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				width: 2.5rem;
+				height: 2.5rem;
+				background: var(--accent);
+				color: white;
+				border-radius: 8px;
+				font-weight: 700;
+				font-size: 1.25rem;
+			}
+		</style>
+	</head>
+	<body>
+		<header>
+			<div class="container">
+				<h1>CHAPTER 4: SYSTEM DESIGN</h1>
+				<p class="subtitle">
+					Smart Medication Manager - Technical Documentation
+				</p>
+			</div>
+		</header>
+
+		<div class="container">
+			<nav>
+				<h2>Quick Navigation</h2>
+				<ul>
+					<li><a href="#architecture">4.1 System Architecture</a></li>
+					<li><a href="#dataflow">4.2 Data Flow Diagrams</a></li>
+					<li><a href="#uml">4.3 UML Diagrams</a></li>
+					<li><a href="#database">4.4 Database Design</a></li>
+					<li><a href="#ui">4.5 User Interface Design</a></li>
+				</ul>
+			</nav>
+
+			<!-- 4.1 System Architecture -->
+			<section id="architecture">
+				<h2><span class="section-number">4.1</span> System Architecture</h2>
+
+				<p>
+					The Smart Medication Manager follows a modern three-tier architecture
+					with microservices pattern, leveraging Next.js for the frontend,
+					Supabase for backend services, and external integrations for
+					notifications.
+				</p>
+
+				<div class="diagram-container">
+					<div class="mermaid">
+						graph TB subgraph ClientLayer["Client Layer"] A[Web Browser]
+						B[Progressive Web App] end subgraph ApplicationLayer["Application
+						Layer"] C[Next.js Frontend] D[React Components] E[State Management]
+						F[Service Worker] end subgraph APILayer["API Layer"] G[Next.js API
+						Routes] H[Supabase Edge Functions] I[Authentication Service] end
+						subgraph DataLayer["Data Layer"] J[(PostgreSQL Database)] K[Supabase
+						Storage] L[Real-time Subscriptions] end subgraph
+						ExternalServices["External Services"] M[Telegram Bot API] N[Web Push
+						Service] O[Cron Scheduler] end A --> C B --> C C --> D C --> E C -->
+						F D --> G E --> G G --> H G --> I H --> J H --> K I --> J J --> L L
+						--> C H --> M H --> N O --> H style A
+						fill:#3b82f6,stroke:#2563eb,color:#fff style B
+						fill:#3b82f6,stroke:#2563eb,color:#fff style C
+						fill:#10b981,stroke:#059669,color:#fff style J
+						fill:#f59e0b,stroke:#d97706,color:#fff style M
+						fill:#ef4444,stroke:#dc2626,color:#fff style N
+						fill:#ef4444,stroke:#dc2626,color:#fff
+					</div>
+				</div>
+
+				<h3>Architecture Components</h3>
+
+				<dl>
+					<dt>Client Layer</dt>
+					<dd>
+						Progressive Web Application accessible via modern web browsers with
+						offline capabilities
+					</dd>
+
+					<dt>Application Layer</dt>
+					<dd>
+						Next.js 14+ with React Server Components, TypeScript, and Tailwind
+						CSS
+					</dd>
+
+					<dt>API Layer</dt>
+					<dd>
+						RESTful APIs via Next.js API routes and Supabase Edge Functions for
+						serverless execution
+					</dd>
+
+					<dt>Data Layer</dt>
+					<dd>
+						PostgreSQL database managed by Supabase with real-time capabilities
+						and Row Level Security
+					</dd>
+
+					<dt>External Services</dt>
+					<dd>
+						Telegram Bot API for messaging, Web Push for browser notifications,
+						pg_cron for scheduled tasks
+					</dd>
+				</dl>
+			</section>
+
+			<!-- 4.2 Data Flow Diagrams -->
+			<section id="dataflow">
+				<h2><span class="section-number">4.2</span> Data Flow Diagrams</h2>
+
+				<h3>Level 0 DFD - Context Diagram</h3>
+				<div class="diagram-container">
+					<div class="mermaid">
+						graph LR U[User] S[Smart Medication Manager System] T[Telegram
+						Service] P[Push Notification Service] U -->|Medication Data,
+						Preferences| S S -->|Reminders, Reports, Insights| U S -->|Send
+						Notifications| T T -->|Delivery Status| S S -->|Push Messages| P P
+						-->|Delivery Status| S style S
+						fill:#3b82f6,stroke:#2563eb,color:#fff,stroke-width:3px style U
+						fill:#10b981,stroke:#059669,color:#fff style T
+						fill:#f59e0b,stroke:#d97706,color:#fff style P
+						fill:#f59e0b,stroke:#d97706,color:#fff
+					</div>
+				</div>
+
+				<h3>Level 1 DFD - Main Processes</h3>
+	            <div class="diagram-container">
+                <div class="mermaid">
+flowchart TD
+    subgraph "Level 1: Main Processes"
+        UM[1.0 User Management]
+        MM[2.0 Menu Management]
+        OP[3.0 Order Processing]
+        PH[4.0 Payment Handling]
+        DC[5.0 Delivery Coordination]
+        RP[6.0 Reporting]
+
+        D1[(User Database)]
+        D2[(Menu Database)]
+        D3[(Order Database)]
+        D4[(Payment Database)]
+        D5[(Delivery Database)]
+        D6[(Reporting Database)]
+
+        %% User Management Detailed Flow
+        UM -->|User Registration| D1
+        D1 -->|Authenticate| UM
+        UM -->|Profile Data| D1
+
+        %% Menu Management Detailed Flow
+        R[Restaurant] -->|Menu Updates| MM
+        MM -->|New/Updated Items| D2
+        D2 -->|Menu Display| C[Customer]
+
+        %% Order Processing Detailed Flow
+        C -->|Item Selection| OP
+        OP -->|Order Details| D3
+        D3 -->|Validate Order| MM
+        OP -->|Confirmed Order| PH
+
+        %% Payment Handling Detailed Flow
+        PH -->|Payment Info| PG[Payment Gateway]
+        PG -->|Transaction Status| PH
+        PH -->|Payment Confirmation| D4
+        D4 -->|Payment Records| RP
+
+        %% Delivery Coordination Detailed Flow
+        OP -->|Order Assignment| DC
+        DC -->|Delivery Status| D5
+        D5 -->|Tracking Info| C
+        DP[Delivery Personnel] -->|Delivery Updates| DC
+
+        %% Reporting Detailed Flow
+        RP -->|Generate Reports| D6
+        D1,D2,D3,D4,D5 -->|Data Source| RP
+    end
+                </div>
+            </div>
+			</section>
+
+			<!-- 4.3 UML Diagrams -->
+			<section id="uml">
+				<h2><span class="section-number">4.3</span> UML Diagrams</h2>
+
+				<h3>4.3.1 Class Diagram</h3>
+				<div class="diagram-container">
+					<div class="mermaid">
+						classDiagram class User { +UUID id +String email +String name
+						+String timezone +Boolean telegramEnabled +String telegramChatId
+						+Boolean webNotificationsEnabled +JSON pushSubscription +DateTime
+						createdAt +login() +updateProfile() +getPreferences() } class
+						Medication { +UUID id +UUID userId +String name +String dosage
+						+String frequency +String[] times +Date startDate +Date endDate
+						+Integer totalQuantity +Integer remainingQuantity +String notes
+						+Boolean active +DateTime createdAt +create() +update() +delete()
+						+checkInventory() } class DoseLog { +UUID id +UUID medicationId
+						+UUID userId +DateTime scheduledTime +DateTime takenAt +String
+						status +String delayReason +Integer delayMinutes +String notes
+						+create() +update() +getHistory() } class Notification { +UUID id
+						+UUID userId +UUID medicationId +String type +String channel +String
+						status +DateTime scheduledFor +DateTime sentAt +JSON metadata
+						+send() +retry() +markDelivered() } class Schedule { +UUID
+						medicationId +String[] times +String frequency +calculateNextDose()
+						+isOverdue() +getUpcoming() } User "1" --> "*" Medication : owns
+						User "1" --> "*" DoseLog : has User "1" --> "*" Notification :
+						receives Medication "1" --> "*" DoseLog : tracks Medication "1" -->
+						"1" Schedule : has Medication "1" --> "*" Notification : triggers
+					</div>
+				</div>
+
+				<h3>4.3.2 Sequence Diagram - Medication Reminder Flow</h3>
+				<div class="diagram-container">
+					<div class="mermaid">
+						sequenceDiagram participant C as Cron Job participant DB as Database
+						participant EF as Edge Function participant T as Telegram API
+						participant P as Push Service participant U as User C->>DB: Check
+						due medications DB-->>C: Return due medications list loop For each
+						due medication C->>EF: Trigger reminder function EF->>DB: Get user
+						preferences DB-->>EF: Return preferences alt Telegram Enabled
+						EF->>T: Send Telegram message T-->>EF: Message sent confirmation
+						EF->>DB: Log notification end alt Web Push Enabled EF->>P: Send push
+						notification P-->>EF: Push sent confirmation EF->>DB: Log
+						notification end end U->>T: Click "Take" button T->>EF: Webhook
+						callback EF->>DB: Create dose log (status: taken) DB-->>EF:
+						Confirmation EF->>T: Update message T-->>U: Show confirmation
+					</div>
+				</div>
+
+				<h3>4.3.3 Activity Diagram - Dose Logging Process</h3>
+				<div class="diagram-container">
+					<div class="mermaid">
+						graph TD A(["Start: Reminder Received"]) --> B{"User Action?"} B
+						-->|Take Now| C[Record Taken Time] B -->|Skip| D[Record Skipped
+						Status] B -->|Remind Later| E[Select Delay Duration] B -->|No
+						Action| F[Mark as Missed] C --> G[Update Dose Log] D --> H[Update
+						Dose Log with Reason] E --> I[Schedule New Reminder] F --> J[Update
+						Dose Log as Missed] G --> K[Update Inventory] H --> L[Send
+						Confirmation] I --> M[Create Delayed Notification] J --> N[Send
+						Alert] K --> O[Check Inventory Level] L --> P(["End"]) M --> P N -->
+						P O --> Q{"Low Stock?"} Q -->|Yes| R[Send Low Stock Alert] Q -->|No|
+						P R --> P style A fill:#10b981,stroke:#059669,color:#fff style P
+						fill:#ef4444,stroke:#dc2626,color:#fff style B
+						fill:#3b82f6,stroke:#2563eb,color:#fff style Q
+						fill:#f59e0b,stroke:#d97706,color:#fff
+					</div>
+				</div>
+			</section>
+
+			<!-- 4.4 Database Design -->
+			<section id="database">
+				<h2><span class="section-number">4.4</span> Database Design</h2>
+
+				<h3>4.4.1 Entity-Relationship Diagram</h3>
+				<div class="diagram-container">
+					<div class="mermaid">
+						erDiagram USER_PROFILES ||--o{ MEDICATIONS : owns USER_PROFILES
+						||--o{ DOSE_LOGS : has USER_PROFILES ||--o{ NOTIFICATIONS : receives
+						MEDICATIONS ||--o{ DOSE_LOGS : tracks MEDICATIONS ||--o{
+						NOTIFICATIONS : triggers USER_PROFILES { uuid id string email string
+						name string timezone boolean telegram_enabled string
+						telegram_chat_id boolean web_notifications_enabled jsonb
+						push_subscription timestamp created_at timestamp updated_at }
+						MEDICATIONS { uuid id uuid user_id string name string dosage string
+						frequency string times date start_date date end_date integer
+						total_quantity integer remaining_quantity text notes boolean active
+						timestamp created_at timestamp updated_at } DOSE_LOGS { uuid id uuid
+						medication_id uuid user_id timestamp scheduled_time timestamp
+						taken_at string status string delay_reason integer delay_minutes
+						text notes timestamp created_at } NOTIFICATIONS { uuid id uuid
+						user_id uuid medication_id string type string channel string status
+						timestamp scheduled_for timestamp sent_at jsonb metadata timestamp
+						created_at }
+					</div>
+				</div>
+
+				<h3>4.4.2 Table Structures</h3>
+
+				<h4>user_profiles</h4>
+				<table>
+					<thead>
+						<tr>
+							<th>Column Name</th>
+							<th>Data Type</th>
+							<th>Constraints</th>
+							<th>Description</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td><code>id</code></td>
+							<td>UUID</td>
+							<td>PRIMARY KEY</td>
+							<td>Unique user identifier</td>
+						</tr>
+						<tr>
+							<td><code>email</code></td>
+							<td>VARCHAR(255)</td>
+							<td>UNIQUE, NOT NULL</td>
+							<td>User email address</td>
+						</tr>
+						<tr>
+							<td><code>name</code></td>
+							<td>VARCHAR(255)</td>
+							<td>NOT NULL</td>
+							<td>User full name</td>
+						</tr>
+						<tr>
+							<td><code>timezone</code></td>
+							<td>VARCHAR(50)</td>
+							<td>DEFAULT 'UTC'</td>
+							<td>User timezone (e.g., 'Asia/Kolkata')</td>
+						</tr>
+						<tr>
+							<td><code>telegram_enabled</code></td>
+							<td>BOOLEAN</td>
+							<td>DEFAULT false</td>
+							<td>Telegram notifications enabled</td>
+						</tr>
+						<tr>
+							<td><code>telegram_chat_id</code></td>
+							<td>VARCHAR(100)</td>
+							<td>NULLABLE</td>
+							<td>Telegram chat identifier</td>
+						</tr>
+						<tr>
+							<td><code>web_notifications_enabled</code></td>
+							<td>BOOLEAN</td>
+							<td>DEFAULT false</td>
+							<td>Web push notifications enabled</td>
+						</tr>
+						<tr>
+							<td><code>push_subscription</code></td>
+							<td>JSONB</td>
+							<td>NULLABLE</td>
+							<td>Web push subscription data</td>
+						</tr>
+						<tr>
+							<td><code>created_at</code></td>
+							<td>TIMESTAMP</td>
+							<td>DEFAULT NOW()</td>
+							<td>Account creation timestamp</td>
+						</tr>
+						<tr>
+							<td><code>updated_at</code></td>
+							<td>TIMESTAMP</td>
+							<td>DEFAULT NOW()</td>
+							<td>Last update timestamp</td>
+						</tr>
+					</tbody>
+				</table>
+
+				<h4>medications</h4>
+				<table>
+					<thead>
+						<tr>
+							<th>Column Name</th>
+							<th>Data Type</th>
+							<th>Constraints</th>
+							<th>Description</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td><code>id</code></td>
+							<td>UUID</td>
+							<td>PRIMARY KEY</td>
+							<td>Unique medication identifier</td>
+						</tr>
+						<tr>
+							<td><code>user_id</code></td>
+							<td>UUID</td>
+							<td>FOREIGN KEY, NOT NULL</td>
+							<td>Reference to user_profiles(id)</td>
+						</tr>
+						<tr>
+							<td><code>name</code></td>
+							<td>VARCHAR(255)</td>
+							<td>NOT NULL</td>
+							<td>Medication name</td>
+						</tr>
+						<tr>
+							<td><code>dosage</code></td>
+							<td>VARCHAR(100)</td>
+							<td>NOT NULL</td>
+							<td>Dosage amount (e.g., '500mg')</td>
+						</tr>
+						<tr>
+							<td><code>frequency</code></td>
+							<td>VARCHAR(50)</td>
+							<td>NOT NULL</td>
+							<td>Frequency (daily, weekly, etc.)</td>
+						</tr>
+						<tr>
+							<td><code>times</code></td>
+							<td>TEXT[]</td>
+							<td>NOT NULL</td>
+							<td>Array of scheduled times</td>
+						</tr>
+						<tr>
+							<td><code>start_date</code></td>
+							<td>DATE</td>
+							<td>NOT NULL</td>
+							<td>Medication start date</td>
+						</tr>
+						<tr>
+							<td><code>end_date</code></td>
+							<td>DATE</td>
+							<td>NULLABLE</td>
+							<td>Medication end date (if applicable)</td>
+						</tr>
+						<tr>
+							<td><code>total_quantity</code></td>
+							<td>INTEGER</td>
+							<td>DEFAULT 0</td>
+							<td>Total quantity purchased</td>
+						</tr>
+						<tr>
+							<td><code>remaining_quantity</code></td>
+							<td>INTEGER</td>
+							<td>DEFAULT 0</td>
+							<td>Remaining quantity in stock</td>
+						</tr>
+						<tr>
+							<td><code>notes</code></td>
+							<td>TEXT</td>
+							<td>NULLABLE</td>
+							<td>Additional notes or instructions</td>
+						</tr>
+						<tr>
+							<td><code>active</code></td>
+							<td>BOOLEAN</td>
+							<td>DEFAULT true</td>
+							<td>Medication is currently active</td>
+						</tr>
+						<tr>
+							<td><code>created_at</code></td>
+							<td>TIMESTAMP</td>
+							<td>DEFAULT NOW()</td>
+							<td>Record creation timestamp</td>
+						</tr>
+						<tr>
+							<td><code>updated_at</code></td>
+							<td>TIMESTAMP</td>
+							<td>DEFAULT NOW()</td>
+							<td>Last update timestamp</td>
+						</tr>
+					</tbody>
+				</table>
+
+				<h4>dose_logs</h4>
+				<table>
+					<thead>
+						<tr>
+							<th>Column Name</th>
+							<th>Data Type</th>
+							<th>Constraints</th>
+							<th>Description</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td><code>id</code></td>
+							<td>UUID</td>
+							<td>PRIMARY KEY</td>
+							<td>Unique log identifier</td>
+						</tr>
+						<tr>
+							<td><code>medication_id</code></td>
+							<td>UUID</td>
+							<td>FOREIGN KEY, NOT NULL</td>
+							<td>Reference to medications(id)</td>
+						</tr>
+						<tr>
+							<td><code>user_id</code></td>
+							<td>UUID</td>
+							<td>FOREIGN KEY, NOT NULL</td>
+							<td>Reference to user_profiles(id)</td>
+						</tr>
+						<tr>
+							<td><code>scheduled_time</code></td>
+							<td>TIMESTAMP</td>
+							<td>NOT NULL</td>
+							<td>Originally scheduled time</td>
+						</tr>
+						<tr>
+							<td><code>taken_at</code></td>
+							<td>TIMESTAMP</td>
+							<td>NULLABLE</td>
+							<td>Actual time medication was taken</td>
+						</tr>
+						<tr>
+							<td><code>status</code></td>
+							<td>VARCHAR(20)</td>
+							<td>NOT NULL</td>
+							<td>Status: taken, skipped, missed, delayed</td>
+						</tr>
+						<tr>
+							<td><code>delay_reason</code></td>
+							<td>VARCHAR(100)</td>
+							<td>NULLABLE</td>
+							<td>Reason for delay if applicable</td>
+						</tr>
+						<tr>
+							<td><code>delay_minutes</code></td>
+							<td>INTEGER</td>
+							<td>NULLABLE</td>
+							<td>Minutes delayed</td>
+						</tr>
+						<tr>
+							<td><code>notes</code></td>
+							<td>TEXT</td>
+							<td>NULLABLE</td>
+							<td>Additional notes</td>
+						</tr>
+						<tr>
+							<td><code>created_at</code></td>
+							<td>TIMESTAMP</td>
+							<td>DEFAULT NOW()</td>
+							<td>Log creation timestamp</td>
+						</tr>
+					</tbody>
+				</table>
+
+				<h4>notifications</h4>
+				<table>
+					<thead>
+						<tr>
+							<th>Column Name</th>
+							<th>Data Type</th>
+							<th>Constraints</th>
+							<th>Description</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td><code>id</code></td>
+							<td>UUID</td>
+							<td>PRIMARY KEY</td>
+							<td>Unique notification identifier</td>
+						</tr>
+						<tr>
+							<td><code>user_id</code></td>
+							<td>UUID</td>
+							<td>FOREIGN KEY, NOT NULL</td>
+							<td>Reference to user_profiles(id)</td>
+						</tr>
+						<tr>
+							<td><code>medication_id</code></td>
+							<td>UUID</td>
+							<td>FOREIGN KEY, NULLABLE</td>
+							<td>Reference to medications(id)</td>
+						</tr>
+						<tr>
+							<td><code>type</code></td>
+							<td>VARCHAR(50)</td>
+							<td>NOT NULL</td>
+							<td>Type: reminder, low_stock, missed</td>
+						</tr>
+						<tr>
+							<td><code>channel</code></td>
+							<td>VARCHAR(20)</td>
+							<td>NOT NULL</td>
+							<td>Channel: telegram, web_push</td>
+						</tr>
+						<tr>
+							<td><code>status</code></td>
+							<td>VARCHAR(20)</td>
+							<td>NOT NULL</td>
+							<td>Status: pending, sent, failed</td>
+						</tr>
+						<tr>
+							<td><code>scheduled_for</code></td>
+							<td>TIMESTAMP</td>
+							<td>NOT NULL</td>
+							<td>Scheduled send time</td>
+						</tr>
+						<tr>
+							<td><code>sent_at</code></td>
+							<td>TIMESTAMP</td>
+							<td>NULLABLE</td>
+							<td>Actual send time</td>
+						</tr>
+						<tr>
+							<td><code>metadata</code></td>
+							<td>JSONB</td>
+							<td>NULLABLE</td>
+							<td>Additional notification data</td>
+						</tr>
+						<tr>
+							<td><code>created_at</code></td>
+							<td>TIMESTAMP</td>
+							<td>DEFAULT NOW()</td>
+							<td>Record creation timestamp</td>
+						</tr>
+					</tbody>
+				</table>
+			</section>
+
+			<!-- 4.5 User Interface Design -->
+			<section id="ui">
+				<h2><span class="section-number">4.5</span> User Interface Design</h2>
+
+				<h3>UI Architecture</h3>
+				<div class="diagram-container">
+					<div class="mermaid">
+						graph TD A[Landing Page] --> B{"Authenticated?"} B -->|No|
+						C["Login/Signup"] B -->|Yes| D[Dashboard] C --> E[Onboarding] E -->
+						D D --> F[Medication List] D --> G[Add Medication] D --> H[Settings]
+						D --> I[Analytics] F --> J[Medication Detail] J --> K[Edit
+						Medication] J --> L[Dose History] J --> M[Log Dose] H --> N[Profile
+						Settings] H --> O[Notification Preferences] H --> P[Telegram Setup]
+						I --> Q[Adherence Reports] I --> R[Trend Charts] style A
+						fill:#10b981,stroke:#059669,color:#fff style D
+						fill:#3b82f6,stroke:#2563eb,color:#fff style F
+						fill:#3b82f6,stroke:#2563eb,color:#fff style H
+						fill:#3b82f6,stroke:#2563eb,color:#fff style I
+						fill:#3b82f6,stroke:#2563eb,color:#fff
+					</div>
+				</div>
+
+				<h3>Key UI Components</h3>
+
+				<h4>Dashboard Layout</h4>
+				<dl>
+					<dt>Header</dt>
+					<dd>Application logo, user profile menu, notification bell</dd>
+
+					<dt>Sidebar Navigation</dt>
+					<dd>Dashboard, Medications, Analytics, Settings links with icons</dd>
+
+					<dt>Main Content Area</dt>
+					<dd>
+						<ul style="margin-left: 1.5rem; color: var(--text-dim)">
+							<li>
+								Statistics cards (adherence rate, upcoming doses, missed doses)
+							</li>
+							<li>
+								Today's medications with action buttons (Take, Skip, Remind
+								Later)
+							</li>
+							<li>7-day adherence trend chart</li>
+							<li>Medication type breakdown</li>
+						</ul>
+					</dd>
+				</dl>
+
+				<h4>Medication Card</h4>
+				<dl>
+					<dt>Header Section</dt>
+					<dd>Medication name, dosage, time indicator</dd>
+
+					<dt>Status Indicator</dt>
+					<dd>Color-coded status (upcoming, overdue, taken, skipped)</dd>
+
+					<dt>Action Buttons</dt>
+					<dd>Take Now, Skip, Remind Later with confirmation dialogs</dd>
+
+					<dt>Additional Info</dt>
+					<dd>Remaining quantity, next dose time, notes</dd>
+				</dl>
+
+				<h4>Notification Preferences</h4>
+				<dl>
+					<dt>Telegram Integration</dt>
+					<dd>Connect/disconnect button, chat ID display, test notification</dd>
+
+					<dt>Web Push</dt>
+					<dd>Enable/disable toggle, permission status, test notification</dd>
+
+					<dt>Reminder Settings</dt>
+					<dd>Lead time configuration, snooze duration options</dd>
+				</dl>
+
+				<h3>Design System</h3>
+				<table>
+					<thead>
+						<tr>
+							<th>Element</th>
+							<th>Specification</th>
+							<th>Usage</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td><strong>Primary Font</strong></td>
+							<td>Outfit (300-700 weights)</td>
+							<td>Body text, headings, UI elements</td>
+						</tr>
+						<tr>
+							<td><strong>Monospace Font</strong></td>
+							<td>Space Mono</td>
+							<td>Code snippets, technical data</td>
+						</tr>
+						<tr>
+							<td><strong>Primary Color</strong></td>
+							<td>#3b82f6 (Blue)</td>
+							<td>Buttons, links, active states</td>
+						</tr>
+						<tr>
+							<td><strong>Success Color</strong></td>
+							<td>#10b981 (Green)</td>
+							<td>Taken status, positive actions</td>
+						</tr>
+						<tr>
+							<td><strong>Warning Color</strong></td>
+							<td>#f59e0b (Amber)</td>
+							<td>Overdue, low stock alerts</td>
+						</tr>
+						<tr>
+							<td><strong>Error Color</strong></td>
+							<td>#ef4444 (Red)</td>
+							<td>Missed doses, errors</td>
+						</tr>
+						<tr>
+							<td><strong>Border Radius</strong></td>
+							<td>8px (small), 12px (medium), 16px (large)</td>
+							<td>Cards, buttons, inputs</td>
+						</tr>
+						<tr>
+							<td><strong>Spacing Scale</strong></td>
+							<td>0.5rem, 1rem, 1.5rem, 2rem, 3rem</td>
+							<td>Padding, margins, gaps</td>
+						</tr>
+					</tbody>
+				</table>
+
+				<h3>Responsive Breakpoints</h3>
+				<table>
+					<thead>
+						<tr>
+							<th>Device</th>
+							<th>Breakpoint</th>
+							<th>Layout Adjustments</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>Mobile</td>
+							<td>< 768px</td>
+							<td>Single column, bottom navigation, collapsed sidebar</td>
+						</tr>
+						<tr>
+							<td>Tablet</td>
+							<td>768px - 1024px</td>
+							<td>Two columns, side navigation, responsive cards</td>
+						</tr>
+						<tr>
+							<td>Desktop</td>
+							<td>> 1024px</td>
+							<td>Multi-column grid, persistent sidebar, expanded views</td>
+						</tr>
+					</tbody>
+				</table>
+			</section>
+		</div>
+
+		<script>
+			// Initialize Mermaid
+			mermaid.initialize({
+				startOnLoad: true,
+				theme: "dark",
+				themeVariables: {
+					primaryColor: "#3b82f6",
+					primaryTextColor: "#fff",
+					primaryBorderColor: "#2563eb",
+					lineColor: "#60a5fa",
+					secondaryColor: "#1e293b",
+					tertiaryColor: "#0f172a",
+					background: "#0f172a",
+					mainBkg: "#1e293b",
+					secondBkg: "#0f172a",
+					textColor: "#e2e8f0",
+					fontSize: "16px",
+					fontFamily: "Outfit, sans-serif",
+				},
+				flowchart: {
+					curve: "basis",
+					padding: 20,
+				},
+				sequence: {
+					actorMargin: 50,
+					width: 150,
+					height: 65,
+					boxMargin: 10,
+				},
+			});
+
+			// Smooth scroll for navigation links
+			document.querySelectorAll("nav a").forEach((anchor) => {
+				anchor.addEventListener("click", function (e) {
+					e.preventDefault();
+					const target = document.querySelector(this.getAttribute("href"));
+					target.scrollIntoView({
+						behavior: "smooth",
+						block: "start",
+					});
+				});
+			});
+
+			// Add active state to navigation
+			const sections = document.querySelectorAll("section");
+			const navLinks = document.querySelectorAll("nav a");
+
+			window.addEventListener("scroll", () => {
+				let current = "";
+				sections.forEach((section) => {
+					const sectionTop = section.offsetTop;
+					const sectionHeight = section.clientHeight;
+					if (scrollY >= sectionTop - 200) {
+						current = section.getAttribute("id");
+					}
+				});
+
+				navLinks.forEach((link) => {
+					link.style.background = "";
+					link.style.borderColor = "";
+					if (link.getAttribute("href").slice(1) === current) {
+						link.style.background = "var(--accent)";
+						link.style.borderColor = "var(--accent)";
+					}
+				});
+			});
+		</script>
+	</body>
+</html>

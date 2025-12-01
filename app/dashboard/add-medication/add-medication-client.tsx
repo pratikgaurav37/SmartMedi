@@ -11,6 +11,7 @@ import Link from "next/link";
 import { saveMedicationAction } from "./actions";
 import { toast } from "sonner";
 import { NotificationPermissionCard } from "@/components/notification-permission-card";
+import { getLocalTodayDate } from "@/lib/date-utils";
 
 interface AddMedicationClientProps {
 	userId: string;
@@ -28,7 +29,7 @@ export default function AddMedicationClient({
 		type: "Tablet",
 		frequency: "Daily",
 		times: ["08:00"],
-		startDate: new Date().toISOString().split("T")[0],
+		startDate: getLocalTodayDate(),
 		tracking: {
 			confirm: true,
 			notify: false,

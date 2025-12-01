@@ -141,11 +141,18 @@ export function SettingsForm({ initialProfile }: SettingsFormProps) {
 						</label>
 						<Input
 							type="number"
-							value={formData.weight || ""}
-							onChange={(e) =>
-								setFormData({ ...formData, weight: e.target.value })
-							}
+							value={formData.weight ?? ""}
+							onChange={(e) => {
+								const value = e.target.value;
+								setFormData({
+									...formData,
+									weight: value === "" ? undefined : parseFloat(value),
+								});
+							}}
 							placeholder="70"
+							min="1"
+							max="500"
+							step="0.1"
 						/>
 					</div>
 				</div>

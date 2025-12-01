@@ -32,6 +32,7 @@ export type DoseStatus =
 
 export interface DoseLog {
 	id: string;
+	userId: string; // Foreign key to auth.users
 	medicationId: string;
 	scheduledTime: string; // ISO string
 	actualTime?: string; // ISO string
@@ -47,16 +48,26 @@ export interface UserProfile {
 	name: string;
 	dob: string;
 	gender: string;
-	weight?: string;
+	weight?: number;
 	phone: string;
 	telegramChatId?: string;
 	conditions: string[];
 	allergies?: string;
 	doctorName?: string;
 	emergencyContact?: string;
+	webNotificationsEnabled?: boolean;
+	notificationPermissionRequestedAt?: string;
+	pushSubscription?: any; // JSONB field for web push subscription
 	preferences: {
 		reminderTone: string;
 		language: string;
 		timezone: string;
 	};
 }
+
+/**
+ * Result type for server actions
+ */
+export type ActionResult<T = void> =
+	| { success: true; data?: T }
+	| { success: false; error: string; field?: string };

@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { saveUserProfile } from "./actions";
-// import { saveProfile, UserProfile } from "@/lib/storage"; // Removed local storage save
 import { UserProfile } from "@/lib/storage";
 import { TelegramConnect } from "@/components/telegram-connect";
 import { TelegramConnectDev } from "@/components/telegram-connect-dev";
 import { NotificationPermissionCard } from "@/components/notification-permission-card";
+import { toast } from "sonner";
 
 // Use dev component for local development, prod component for production
 const isDev = process.env.NODE_ENV === "development";
@@ -30,7 +30,7 @@ const Onboarding = () => {
 		phone: "",
 		dob: "",
 		gender: "other",
-		weight: "",
+		weight: undefined,
 		conditions: [],
 		allergies: "",
 		doctorName: "",
@@ -63,14 +63,37 @@ const Onboarding = () => {
 	}, [router]);
 
 	const handleSubmit = async () => {
-		if (!userId) return;
+		if (!userId) {
+			toast.error("Authentication error. Please log in again.");
+			return;
+		}
+
 		setIsSubmitting(true);
+
 		try {
-			await saveUserProfile(formData);
-			// Redirect is handled in server action
+			const result = await saveUserProfile(formData);
+
+			if (result.success) {
+				toast.success("Profile saved successfully!", {
+					description: "Redirecting to dashboard...",
+				});
+
+				// Navigate to dashboard after a brief delay to show the toast
+				setTimeout(() => {
+					router.push("/dashboard");
+				}, 1000);
+			} else {
+				toast.error("Failed to save profile", {
+					description: result.error,
+				});
+				setIsSubmitting(false);
+			}
 		} catch (error) {
-			console.error("Failed to save profile:", error);
-			alert("Failed to save profile. Please try again.");
+			console.error("Unexpected error:", error);
+			toast.error("Something went wrong", {
+				description:
+					"Please try again or contact support if the problem persists.",
+			});
 			setIsSubmitting(false);
 		}
 	};
@@ -157,12 +180,19 @@ const Onboarding = () => {
 								</label>
 								<Input
 									type="number"
-									value={formData.weight}
-									onChange={(e) =>
-										setFormData({ ...formData, weight: e.target.value })
-									}
+									value={formData.weight ?? ""}
+									onChange={(e) => {
+										const value = e.target.value;
+										setFormData({
+											...formData,
+											weight: value === "" ? undefined : parseFloat(value),
+										});
+									}}
 									placeholder="70"
 									className="bg-white"
+									min="1"
+									max="500"
+									step="0.1"
 								/>
 							</div>
 						</div>

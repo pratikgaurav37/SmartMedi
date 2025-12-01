@@ -26,6 +26,7 @@ interface DbDoseLog {
 function dbToDoseLog(db: DbDoseLog): DoseLog {
 	return {
 		id: db.id,
+		userId: db.user_id,
 		medicationId: db.medication_id,
 		scheduledTime: db.scheduled_time,
 		actualTime: db.actual_time,
@@ -41,12 +42,11 @@ function dbToDoseLog(db: DbDoseLog): DoseLog {
  * Convert app dose log to database format
  */
 function doseLogToDb(
-	log: DoseLog,
-	userId: string
+	log: DoseLog
 ): Omit<DbDoseLog, "created_at" | "updated_at"> {
 	return {
 		id: log.id,
-		user_id: userId,
+		user_id: log.userId,
 		medication_id: log.medicationId,
 		scheduled_time: log.scheduledTime,
 		actual_time: log.actualTime,
@@ -68,7 +68,7 @@ export async function createDoseLog(
 ): Promise<{ data: DoseLog | null; error: Error | null }> {
 	try {
 		const supabase = await createClient();
-		const dbLog = doseLogToDb(log, userId);
+		const dbLog = doseLogToDb(log);
 
 		// Check if log already exists
 		const { data: existing } = await supabase

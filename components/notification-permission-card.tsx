@@ -16,6 +16,7 @@ import {
 	isNotificationSupported,
 	shouldPromptForPermission,
 	markPermissionPrompted,
+	subscribeToPushNotifications,
 	type NotificationPermissionStatus,
 } from "@/lib/web-notifications";
 
@@ -52,9 +53,30 @@ export function NotificationPermissionCard({
 
 		const result = await requestNotificationPermission();
 		setPermission(result);
-		setIsRequesting(false);
 
 		if (result === "granted") {
+			// Subscribe to push notifications
+			try {
+				const subscription = await subscribeToPushNotifications();
+
+				if (subscription) {
+					// Save subscription to server
+					const response = await fetch("/api/notifications/subscribe", {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ subscription: subscription.toJSON() }),
+					});
+
+					if (response.ok) {
+						console.log("✅ Push subscription saved to server");
+					} else {
+						console.error("Failed to save push subscription to server");
+					}
+				}
+			} catch (error) {
+				console.error("Error setting up push notifications:", error);
+			}
+
 			onPermissionGranted?.();
 			if (autoHideOnGranted) {
 				setTimeout(() => setIsVisible(false), 2000);
@@ -62,6 +84,8 @@ export function NotificationPermissionCard({
 		} else if (result === "denied") {
 			onPermissionDenied?.();
 		}
+
+		setIsRequesting(false);
 	};
 
 	// Don't show if not supported or if auto-hidden

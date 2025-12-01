@@ -15,7 +15,9 @@ export async function POST(request: NextRequest) {
 		}
 
 		const body = await request.json();
-		const { data, error } = await createDoseLog(user.id, body);
+		// Ensure userId is set in the log object
+		const logWithUserId = { ...body, userId: user.id };
+		const { data, error } = await createDoseLog(user.id, logWithUserId);
 
 		if (error) {
 			return NextResponse.json({ error: error.message }, { status: 500 });

@@ -24,6 +24,11 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { DelayDoseDialog } from "@/components/delay-dose-dialog";
 import { motion } from "framer-motion";
+import {
+	getLocalTodayDate,
+	getLocalYesterdayDate,
+	getTodayDateAtTime,
+} from "@/lib/date-utils";
 
 interface MedicationDetailClientProps {
 	medication: Medication;
@@ -62,7 +67,8 @@ export default function MedicationDetailClient({
 	useEffect(() => {
 		const checkMissedDoses = async () => {
 			const now = new Date();
-			const todayStr = now.toISOString().split("T")[0];
+			// Use local date for today
+			const todayStr = getLocalTodayDate();
 
 			// Check previous days or earlier times today
 			// For simplicity in this view, we just check if there are any times in the past
@@ -80,9 +86,8 @@ export default function MedicationDetailClient({
 
 			const missedTimes: string[] = [];
 
-			const yesterday = new Date();
-			yesterday.setDate(yesterday.getDate() - 1);
-			const yesterdayStr = yesterday.toISOString().split("T")[0];
+			// Use local date for yesterday
+			const yesterdayStr = getLocalYesterdayDate();
 
 			// Check if yesterday has logs for all times
 			const yesterdayLogs = doseLogs.filter((l) =>
@@ -97,7 +102,8 @@ export default function MedicationDetailClient({
 				await Promise.all(
 					missingTimesYesterday.map(async (time) => {
 						const [hours, minutes] = time.split(":").map(Number);
-						const scheduledDate = new Date(yesterday);
+						// Construct yesterday's date object correctly
+						const scheduledDate = new Date(yesterdayStr);
 						scheduledDate.setHours(hours, minutes, 0, 0);
 
 						const logId = `${medication.id}_${yesterdayStr}_${time}`;
@@ -123,7 +129,7 @@ export default function MedicationDetailClient({
 	}, [medication.id, medication.times, doseLogs, router]);
 
 	const getTodayLog = (time: string) => {
-		const todayStr = new Date().toISOString().split("T")[0];
+		const todayStr = getLocalTodayDate();
 		const logId = `${medication.id}_${todayStr}_${time}`;
 		return doseLogs.find((l) => l.id === logId);
 	};
@@ -145,12 +151,10 @@ export default function MedicationDetailClient({
 	) => {
 		setLoading(true);
 		try {
-			const todayStr = new Date().toISOString().split("T")[0];
+			const todayStr = getLocalTodayDate();
 			const logId = `${medication.id}_${todayStr}_${scheduledTime}`;
 
-			const [hours, minutes] = scheduledTime.split(":").map(Number);
-			const scheduledDate = new Date();
-			scheduledDate.setHours(hours, minutes, 0, 0);
+			const scheduledDate = getTodayDateAtTime(scheduledTime);
 
 			const response = await fetch("/api/dose-logs/create", {
 				method: "POST",
@@ -206,9 +210,7 @@ export default function MedicationDetailClient({
 		const log = getTodayLog(selectedDoseTime);
 		const currentDelayCount = log?.delayCount || 0;
 
-		const [hours, minutes] = selectedDoseTime.split(":").map(Number);
-		const scheduledDate = new Date();
-		scheduledDate.setHours(hours, minutes, 0, 0);
+		const scheduledDate = getTodayDateAtTime(selectedDoseTime);
 
 		const delayedUntil = new Date(
 			scheduledDate.getTime() + delayMinutes * 60000
@@ -265,6 +267,19 @@ export default function MedicationDetailClient({
 		medication.currentSupply !== undefined &&
 		medication.lowStockThreshold !== undefined &&
 		medication.currentSupply <= medication.lowStockThreshold;
+
+	// Calculate adherence for this medication
+	const takenDoses = doseLogs.filter((log) => log.status === "taken").length;
+	const totalDoses = doseLogs.length;
+	const adherencePercentage =
+		totalDoses > 0 ? Math.round((takenDoses / totalDoses) * 100) : 0;
+
+	// Calculate days active
+	const startDate = new Date(medication.startDate);
+	const today = new Date();
+	const daysActive = Math.floor(
+		(today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+	);
 
 	return (
 		<motion.div
@@ -382,14 +397,44 @@ export default function MedicationDetailClient({
 						</div>
 						<div>
 							<p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-								Started On
+								Days Active
 							</p>
 							<p className="text-lg font-bold text-slate-900 dark:text-white">
-								{new Date(medication.startDate).toLocaleDateString("en-US", {
-									month: "short",
-									day: "numeric",
-									year: "numeric",
-								})}
+								{daysActive} days
+							</p>
+						</div>
+					</div>
+				</motion.div>
+
+				{/* Adherence Stats Row */}
+				<motion.div
+					variants={item}
+					className="grid grid-cols-1 md:grid-cols-2 gap-4"
+				>
+					<div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 p-5 rounded-xl shadow-sm border border-emerald-200 dark:border-emerald-900/50 flex items-center gap-4">
+						<div className="p-3 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-lg">
+							<Activity className="w-6 h-6" />
+						</div>
+						<div>
+							<p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+								Adherence Rate
+							</p>
+							<p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">
+								{adherencePercentage}%
+							</p>
+						</div>
+					</div>
+
+					<div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-5 rounded-xl shadow-sm border border-blue-200 dark:border-blue-900/50 flex items-center gap-4">
+						<div className="p-3 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-lg">
+							<Check className="w-6 h-6" />
+						</div>
+						<div>
+							<p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+								Total Doses Taken
+							</p>
+							<p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+								{takenDoses} / {totalDoses}
 							</p>
 						</div>
 					</div>
